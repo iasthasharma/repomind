@@ -19,13 +19,16 @@ const requestSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim()
     if (!apiKey) {
       return Response.json({ error: 'GOOGLE_GENERATIVE_AI_API_KEY is not configured on the server.' }, { status: 503 })
     }
 
     const google = createGoogleGenerativeAI({ apiKey })
-    const model = process.env.GEMINI_MODEL?.trim() || 'gemini-3.8-flash'
+    const configuredModel = process.env.GEMINI_MODEL?.trim().replace(/^models\//, '')
+    const model = configuredModel === 'gemini-2.5-flash' || !configuredModel
+      ? 'gemini-3.8-flash'
+      : configuredModel
 
     const parsed = requestSchema.safeParse(await request.json())
     if (!parsed.success) return Response.json({ error: 'Please provide a question and valid indexed repository context.' }, { status: 400 })
