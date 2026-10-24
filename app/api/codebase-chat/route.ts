@@ -2,6 +2,9 @@ import { generateText } from 'ai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { z } from 'zod'
 
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
 const requestSchema = z.object({
   question: z.string().trim().min(1).max(4000),
   files: z.array(z.object({
@@ -16,7 +19,7 @@ const requestSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? process.env.GEMINI_API_KEY
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
     if (!apiKey) {
       return Response.json({ error: 'GOOGLE_GENERATIVE_AI_API_KEY is not configured on the server.' }, { status: 503 })
     }
