@@ -1,5 +1,5 @@
 import { generateText } from 'ai'
-import { google } from '@ai-sdk/google'
+import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { z } from 'zod'
 
 const requestSchema = z.object({
@@ -16,9 +16,13 @@ const requestSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    if (!process.env.GEMINI_API_KEY) {
-      return Response.json({ error: 'GEMINI_API_KEY is not configured on the server.' }, { status: 503 })
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? process.env.GEMINI_API_KEY
+    if (!apiKey) {
+      return Response.json({ error: 'GOOGLE_GENERATIVE_AI_API_KEY is not configured on the server.' }, { status: 503 })
     }
+
+    const google = createGoogleGenerativeAI({ apiKey })
+    const model = process.env.GEMINI_MODEL?.trim() || 'gemini-3.8-flash'
 
     const parsed = requestSchema.safeParse(await request.json())
     if (!parsed.success) return Response.json({ error: 'Please provide a question and valid indexed repository context.' }, { status: 400 })
@@ -35,7 +39,7 @@ export async function POST(request: Request) {
     const dependencies = parsed.data.edges.map(edge => `${edge.source} -> ${edge.target}`).join('\n') || 'No dependency edges were resolved.'
 
     const result = await generateText({
-      model: google('gemini-2.5-flash'),
+      model: google(model),
       system: 'You are RepoMind, a codebase intelligence assistant. Answer only from the indexed file contents and dependency graph provided below. If the context does not support an answer, say that the indexed repository context does not contain enough information. Do not invent files, symbols, behavior, or changes. Cite relevant file paths inline.\n\nINDEXED FILES:\n' + context + '\n\nDEPENDENCY GRAPH:\n' + dependencies,
       prompt: parsed.data.question,
       maxOutputTokens: 900,
